@@ -15,6 +15,7 @@ import net.sourcewalker.olv.messages.MessageConstants;
 import net.sourcewalker.olv.messages.UShort;
 import net.sourcewalker.olv.messages.calls.CapsRequest;
 import net.sourcewalker.olv.messages.calls.DeviceStatusAck;
+import net.sourcewalker.olv.messages.calls.EncodeDisplayPanel;
 import net.sourcewalker.olv.messages.calls.GetTimeResponse;
 import net.sourcewalker.olv.messages.calls.MenuItem;
 import net.sourcewalker.olv.messages.calls.MessageAck;
@@ -251,6 +252,7 @@ public class LiveViewThread extends Thread {
             Navigation nav = (Navigation) event;
         	Log.d(TAG, "Navigation:" + nav.toString());
             handleNavigationEvent(nav);
+            sendCall(new EncodeDisplayPanel("top", "bottom", false, menuImage));
             break;
             
         }
