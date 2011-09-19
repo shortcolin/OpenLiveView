@@ -44,7 +44,7 @@ import android.util.Log;
 
 public class LiveViewThread extends Thread {
 
-    private static final String TAG = "LiveViewThread";
+    public static final String TAG = "LiveViewThread";
 
     private static final UUID SERIAL = UUID
             .fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -87,23 +87,8 @@ public class LiveViewThread extends Thread {
                 contentIntent);
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
-        try {
-            InputStream stream = parentService.getAssets().open(
-                    "menu_blank.png");
-            ByteArrayOutputStream arrayStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            while (stream.available() > 0) {
-                int read = stream.read(buffer);
-                arrayStream.write(buffer, 0, read);
-            }
-            stream.close();
-            menuImage = arrayStream.toByteArray();
-            Log.d(TAG, "Menu icon size: " + menuImage.length);
-        } catch (IOException e) {
-            Log.e(TAG, "Error reading menu icon: " + e.getMessage());
-            throw new RuntimeException("Error reading menu icon: "
-                    + e.getMessage(), e);
-        }
+        menuImage = parentService.getIcon("menu_blank.png");
+        
     }
 
     /*
@@ -252,7 +237,6 @@ public class LiveViewThread extends Thread {
             Navigation nav = (Navigation) event;
         	Log.d(TAG, "Navigation:" + nav.toString());
             handleNavigationEvent(nav);
-            sendCall(new EncodeDisplayPanel("top", "bottom", false, menuImage));
             break;
             
         }
@@ -266,7 +250,7 @@ public class LiveViewThread extends Thread {
      * @throws IOException
      *             If the message could not be sent successfully.
      */
-    private synchronized void sendCall(LiveViewCall call) throws IOException {
+    public synchronized void sendCall(LiveViewCall call) throws IOException {
         if (clientSocket == null) {
             throw new IOException("No client connected!");
         } else {

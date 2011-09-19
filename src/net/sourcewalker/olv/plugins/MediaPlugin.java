@@ -1,5 +1,6 @@
 package net.sourcewalker.olv.plugins;
 
+import net.sourcewalker.olv.messages.calls.EncodeDisplayPanel;
 import net.sourcewalker.olv.service.LiveViewService;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -24,7 +25,7 @@ public class MediaPlugin extends Plugin {
 	public static final String CMDNEXT = "next";
 
 	private LiveViewService service;
-	
+	private byte[] image;
 	private BroadcastReceiver trackChangedReceiver = new BroadcastReceiver() {
 
 		@Override
@@ -35,12 +36,24 @@ public class MediaPlugin extends Plugin {
 			String artist = intent.getStringExtra("artist");
 			String album = intent.getStringExtra("album");
 			String track = intent.getStringExtra("track");
+			Boolean playing = intent.getBooleanExtra("playing", false);
 			Log.d(TAG, artist + ":" + album + ":" + track);
+			
+			EncodeDisplayPanel ep;
+			
+			if (playing) { 
+				ep = new EncodeDisplayPanel(album, track, false, image);
+			}
+			else {
+				ep = new EncodeDisplayPanel(album, "<paused>", false, image);
+			}
+			MediaPlugin.this.service.sendCall(ep);
 		}
 	};
 	
 	public MediaPlugin(LiveViewService service) {
 		this.service = service;
+		this.image = service.getIcon("menu_blank.png");
 	}
 	
 	@Override
