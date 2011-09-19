@@ -75,7 +75,22 @@ public class Navigation extends LiveViewEvent {
      */
     @Override
     public String toString() {
-        return String.format("Navigation: Action=%d Type=%d MenuItem=%d %s",
-                navAction, navType, menuItemId, inAlert ? "ALERT" : "");
+    	String typeStr = "<unknown>";
+    	String actionStr = "<unknown>";
+    	
+    	if (navAction == MessageConstants.NAVACTION_DOUBLEPRESS) actionStr = "DoublePress";
+    	if (navAction == MessageConstants.NAVACTION_PRESS) actionStr = "Press";
+    	if (navAction == MessageConstants.NAVACTION_LONGPRESS) actionStr = "LongPress";
+    	
+    	if (navType == MessageConstants.NAVTYPE_DOWN) typeStr = "Down";
+    	if (navType == MessageConstants.NAVTYPE_UP) typeStr = "Up";
+    	if (navType == MessageConstants.NAVTYPE_LEFT) typeStr = "Left";
+    	if (navType == MessageConstants.NAVTYPE_RIGHT) typeStr = "Right";
+    	if (navType == MessageConstants.NAVTYPE_SELECT) typeStr = "Select";
+    	if (navType == MessageConstants.NAVTYPE_MENUSELECT) typeStr = "MenuSelect";
+    	
+    	
+        return String.format("Navigation: Action=%d(%s) Type=%d(%s) MenuItem=%d %s",
+                navAction, actionStr, navType, typeStr, menuItemId, inAlert ? "ALERT" : "");
     }
 }

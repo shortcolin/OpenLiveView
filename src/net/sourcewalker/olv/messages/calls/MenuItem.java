@@ -40,7 +40,7 @@ public class MenuItem extends LiveViewCall {
             buffer.putShort(unreadCount.getValue());
             buffer.putShort((short) 0);
             buffer.put((byte) (itemId + 3));
-            buffer.put((byte) 0);
+            buffer.put((byte) 0); // 0 is for plaintext vs bitmapimage (1) strings
             buffer.putShort((short) 0);
             buffer.putShort((short) 0);
             buffer.putShort((short) textArray.length);

@@ -23,6 +23,8 @@ import net.sourcewalker.olv.messages.calls.SetMenuSize;
 import net.sourcewalker.olv.messages.calls.SetVibrate;
 import net.sourcewalker.olv.messages.events.CapsResponse;
 import net.sourcewalker.olv.messages.events.Navigation;
+import net.sourcewalker.olv.plugins.MediaPlugin;
+import net.sourcewalker.olv.plugins.Plugin;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -36,6 +38,9 @@ import android.util.Log;
 /**
  * @author Robert &lt;xperimental@solidproject.de&gt;
  */
+
+// http://stackoverflow.com/questions/6672413/in-what-way-is-java-net-socket-threadsafe
+
 public class LiveViewThread extends Thread {
 
     private static final String TAG = "LiveViewThread";
@@ -59,10 +64,14 @@ public class LiveViewThread extends Thread {
 
     private Notification notification;
 
+    // FIXME - wrong location for this - here for testing
+    private MediaPlugin mediaPlugin;
+    
     public LiveViewThread(LiveViewService parentService) {
         super("LiveViewThread");
         this.parentService = parentService;
-
+        mediaPlugin = new MediaPlugin(parentService);
+        
         notification = new Notification(R.drawable.icon,
                 "LiveView connected...", System.currentTimeMillis());
         Context context = parentService.getApplicationContext();
@@ -103,7 +112,8 @@ public class LiveViewThread extends Thread {
     @Override
     public void run() {
         parentService.startForeground(SERVICE_NOTIFY, notification);
-
+        mediaPlugin.start();
+        
         Log.d(TAG, "Starting LiveView thread.");
         startUpTime = System.currentTimeMillis();
         serverSocket = null;
@@ -142,7 +152,8 @@ public class LiveViewThread extends Thread {
             }
         }
         Log.d(TAG, "Stopped LiveView thread.");
-
+        mediaPlugin.stop();
+        
         // Log runtime
         long runtime = (System.currentTimeMillis() - startUpTime) / 1000;
         long runHour = runtime / 3600;
@@ -163,6 +174,47 @@ public class LiveViewThread extends Thread {
         parentService.stopSelf();
     }
 
+    /** Handle a navigation event 
+     * 
+     *      * @param event
+     *            Event sent by device.
+     * @throws IOException 
+     */
+    
+    private void handleNavigationEvent(Navigation nav) throws IOException {
+    	Plugin plugin = mediaPlugin; // FIXME - temp
+    	boolean doCancel = false;
+    	boolean doublePress = false;
+    	boolean longPress = false;
+    	
+    	byte navType = nav.getNavType();
+    	
+    	if (navType == MessageConstants.NAVTYPE_UP)
+    		doCancel = plugin.handleButtonUp(doublePress, longPress);
+
+    	if (navType == MessageConstants.NAVTYPE_DOWN)
+    		doCancel = plugin.handleButtonDown(doublePress, longPress);
+
+    	if (navType == MessageConstants.NAVTYPE_LEFT)
+    		doCancel = plugin.handleButtonLeft(doublePress, longPress);
+
+    	if (navType == MessageConstants.NAVTYPE_RIGHT)
+    		doCancel = plugin.handleButtonRight(doublePress, longPress);
+
+    	if (navType == MessageConstants.NAVTYPE_SELECT)
+    		doCancel = plugin.handleButtonSelect(doublePress, longPress);
+
+    	// FIXME - handle proper cancel event
+    	
+        if (nav.getNavAction() == MessageConstants.NAVACTION_LONGPRESS) {
+        	Log.d(TAG, "Bringing back to menu.");
+            sendCall(new NavigationResponse(MessageConstants.RESULT_CANCEL));
+        } else {
+        	sendCall(new NavigationResponse(MessageConstants.RESULT_OK));
+        }
+    	
+    }
+    
     /**
      * Process a message that was sent by the LiveView device.
      * 
@@ -176,7 +228,7 @@ public class LiveViewThread extends Thread {
             CapsResponse caps = (CapsResponse) event;
             Log.d(TAG, "LV capabilities: " + caps.toString());
             Log.d(TAG, "LV Version: " + caps.getSoftwareVersion());
-            sendCall(new SetMenuSize((byte) 1));
+            sendCall(new SetMenuSize((byte) 2)); // Number of items in the menu
             sendCall(new SetVibrate(0, 50));
             break;
         case MessageConstants.MSG_GETTIME:
@@ -189,18 +241,18 @@ public class LiveViewThread extends Thread {
             break;
         case MessageConstants.MSG_GETMENUITEMS:
             Log.d(TAG, "Sending menu items...");
+            // Number must match items in SetMenuSize above
             sendCall(new MenuItem((byte) 0, false, new UShort((short) 0),
-                    "Test", menuImage));
+                    "Music", menuImage));
+            sendCall(new MenuItem((byte) 1, false, new UShort((short) 0),
+            		"Item1", menuImage)); // Cannot enable alerts until 'getalert' message 27 is implemented
             break;
         case MessageConstants.MSG_NAVIGATION:
             Navigation nav = (Navigation) event;
-            if (nav.getNavAction() == MessageConstants.NAVACTION_PRESS
-                    && nav.getNavType() == MessageConstants.NAVTYPE_MENUSELECT) {
-                sendCall(new NavigationResponse(MessageConstants.RESULT_OK));
-            } else {
-                Log.d(TAG, "Bringing back to menu.");
-                sendCall(new NavigationResponse(MessageConstants.RESULT_CANCEL));
-            }
+        	Log.d(TAG, "Navigation:" + nav.toString());
+            handleNavigationEvent(nav);
+            break;
+            
         }
     }
 
@@ -212,7 +264,7 @@ public class LiveViewThread extends Thread {
      * @throws IOException
      *             If the message could not be sent successfully.
      */
-    private void sendCall(LiveViewCall call) throws IOException {
+    private synchronized void sendCall(LiveViewCall call) throws IOException {
         if (clientSocket == null) {
             throw new IOException("No client connected!");
         } else {
