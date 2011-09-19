@@ -2,6 +2,7 @@ package net.sourcewalker.olv.plugins;
 
 import net.sourcewalker.olv.messages.calls.EncodeDisplayPanel;
 import net.sourcewalker.olv.service.LiveViewService;
+import android.media.AudioManager;
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -82,7 +83,7 @@ public class MediaPlugin extends Plugin {
 		intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
 		keyEvent = new KeyEvent(KeyEvent.ACTION_UP, code);
 		intent.putExtra(Intent.EXTRA_KEY_EVENT, keyEvent);
-		service.sendOrderedBroadcast(intent, null);		
+		service.sendOrderedBroadcast(intent, null);
 	}
 	
 	@Override
@@ -99,13 +100,15 @@ public class MediaPlugin extends Plugin {
 
 	@Override
 	public boolean handleButtonUp(Boolean doublePress, Boolean longPress) {
-		sendButtonIntent(KeyEvent.KEYCODE_VOLUME_UP);
+		AudioManager am = (AudioManager)service.getSystemService(service.AUDIO_SERVICE);
+		am.adjustStreamVolume(AudioManager.STREAM_MUSIC, 1, AudioManager.FLAG_SHOW_UI);
 		return false;
 	}
 
 	@Override
 	public boolean handleButtonDown(Boolean doublePress, Boolean longPress) {
-		sendButtonIntent(KeyEvent.KEYCODE_VOLUME_DOWN);
+		AudioManager am = (AudioManager)service.getSystemService(service.AUDIO_SERVICE);
+		am.adjustStreamVolume(AudioManager.STREAM_MUSIC, -1, AudioManager.FLAG_SHOW_UI);
 		return false;
 	}
 
